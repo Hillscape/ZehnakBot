@@ -1,81 +1,123 @@
-# دستیار هوشمند تلگرام (در حال ساخت)
+# 🤖 Telegram AI Assistant
 
-ربات تلگرامی متصل به Google Gemini که متن، عکس، ویدیو و PDF رو می‌فهمه.
+ربات تلگرامی هوشمند و چندوجهی (multimodal) که با Google Gemini کار می‌کنه — متن، عکس، ویدیو و PDF رو می‌فهمه و بهشون جواب می‌ده.
 
-## وضعیت فعلی
-✅ مرحله ۱: اسکلت پایه ربات
-✅ مرحله ۲: اتصال به Gemini API (متن + عکس + ویدیو + PDF)
-⬜ مرحله ۳: حافظه بلندمدت (ذخیره مکالمات تو دیتابیس)
-⬜ مرحله ۴: سیستم یادآوری زمان‌بندی‌شده
-⬜ مرحله ۵: بهبود دیپلوی و مانیتورینگ
+## ✨ ویژگی‌ها
 
-## قابلیت‌های فعلی
-- 💬 پاسخ به پیام‌های متنی
-- 🖼️ تحلیل و توصیف عکس
-- 🎬 تحلیل ویدیو
-- 📄 خلاصه‌سازی فایل PDF
-- ⚠️ محدودیت: فایل‌ها باید کمتر از ۱۵ مگابایت باشن
+| قابلیت | توضیح |
+|---|---|
+| 💬 گفتگوی متنی | پاسخ‌گویی هوشمند به پیام‌های متنی فارسی |
+| 🖼️ تحلیل عکس | توصیف تصویر یا پاسخ به سوال درباره‌ش |
+| 🎬 تحلیل ویدیو | فهم محتوای ویدیو و توضیح اون |
+| 📄 خلاصه‌سازی PDF | استخراج نکات مهم از فایل‌های PDF |
+| ⚡ Webhook-based | بدون نیاز به polling یا پروسه همیشه-روشن |
 
-## ساختار پروژه
+## 🏗️ معماری
+
+```
+تلگرام → Webhook (POST) → Flask App → python-telegram-bot → Gemini API
+                                                                    │
+                                                          متن / عکس / ویدیو / PDF
+```
+
+ربات به‌جای **polling** (که نیاز به یه پروسه دائمی داره)، از **webhook** استفاده می‌کنه:
+تلگرام مستقیماً هر پیام جدید رو با یه درخواست HTTP به سرور Flask می‌فرسته. این باعث میشه
+بشه ربات رو روی هاستینگ‌های رایگان و بدون پشتیبانی از background process (مثل PythonAnywhere Free Tier) هم اجرا کرد.
+
+## 🛠️ تکنولوژی‌ها
+
+- **Python 3.12**
+- **python-telegram-bot v21** — فریم‌ورک ربات (async)
+- **Flask** — سرور webhook
+- **Google Gemini API** (`gemini-3.5-flash-lite`) — موتور هوش مصنوعی چندوجهی
+- **httpx** — کلاینت HTTP async برای اتصال به Gemini
+- **python-dotenv** — مدیریت متغیرهای محیطی
+
+## 📁 ساختار پروژه
+
 ```
 telegram-assistant/
-├── app.py                 # Flask app + webhook endpoint
-├── config.py               # تنظیمات مرکزی (از .env می‌خونه)
+├── app.py                 # Flask app + webhook endpoint (نقطه ورود)
+├── config.py               # تنظیمات مرکزی، خواندن از .env
 ├── bot/
-│   ├── handlers.py         # منطق پاسخ به پیام‌ها/عکس/ویدیو/PDF
+│   ├── handlers.py         # منطق پاسخ به متن/عکس/ویدیو/PDF
 │   ├── telegram_app.py     # ساخت Application و ثبت هندلرها
-│   └── ai_service.py       # اتصال به Gemini API
+│   └── ai_service.py       # لایه اتصال به Gemini API
 ├── requirements.txt
-└── .env.example
+├── .env.example             # الگوی متغیرهای محیطی مورد نیاز
+└── .gitignore
 ```
 
-## چرا Gemini؟
-از Google Gemini API استفاده شده چون:
-- کاملاً رایگانه (بدون نیاز به کارت اعتباری)
-- دامنه‌ش (`googleapis.com`) تو وایت‌لیست اکانت‌های رایگان PythonAnywhere هست
-  (بر خلاف بعضی سرویس‌های دیگه مثل OpenRouter که وایت‌لیست نیستن)
-- چندوجهیه (multimodal) - متن، عکس، ویدیو و PDF رو می‌فهمه
+## 🚀 راه‌اندازی
 
-## نصب و اجرا (لوکال - فقط برای تست منطق)
+### پیش‌نیازها
+- یه توکن ربات تلگرام از [@BotFather](https://t.me/BotFather)
+- یه کلید API رایگان از [Google AI Studio](https://aistudio.google.com/apikey)
+
+### نصب
 
 ```bash
+git clone <آدرس-ریپو>
+cd telegram-assistant
 python -m venv venv
-source venv/bin/activate  # ویندوز: venv\Scripts\activate
+source venv/bin/activate   # ویندوز: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
 # .env رو باز کن و مقادیر واقعی رو جایگزین کن
 ```
 
-⚠️ توجه: چون این نسخه با **webhook** کار می‌کنه نه polling، برای تست کامل لوکال
-باید با ابزاری مثل [ngrok](https://ngrok.com) یه آدرس عمومی موقت بسازی.
+### متغیرهای محیطی (`.env`)
 
-## دیپلوی روی PythonAnywhere
+| متغیر | توضیح |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | توکن ربات از BotFather |
+| `WEBHOOK_URL` | آدرس عمومی که تلگرام بهش پیام میفرسته (مثلاً `https://domain.com/webhook`) |
+| `GEMINI_API_KEY` | کلید API از Google AI Studio |
+| `DATABASE_URL` | مسیر دیتابیس (پیش‌فرض: SQLite محلی) |
 
-1. کد رو آپلود کن (یا از گیت‌هاب کلون کن تو Bash console)
-2. یه virtualenv بساز: `mkvirtualenv --python=/usr/bin/python3.12 botenv`
-3. `pip install -r requirements.txt` بزن
-4. تو تب **Web**:
-   - Source code رو به پوشه پروژه ست کن
-   - Virtualenv رو به مسیر virtualenv‌ت ست کن
-   - فایل WSGI رو باز کن و محتواش رو با این جایگزین کن:
-     ```python
-     import sys
-     path = '/home/یوزرنیمت/telegram-assistant'
-     if path not in sys.path:
-         sys.path.append(path)
+### اجرا (لوکال، برای تست)
 
-     from app import app as application
-     ```
-5. یه فایل `.env` واقعی (نه `.env.example`) تو ریشه پروژه بساز و مقادیر واقعی رو بذار
-6. **Reload** بزن
-7. یه بار آدرس `https://یوزرنیمت.pythonanywhere.com/set_webhook` رو باز کن
-8. تو تلگرام به ربات پیام بده
+چون این پروژه با webhook کار می‌کنه نه polling، برای تست لوکال به یه آدرس عمومی موقت نیاز داری (مثلاً با [ngrok](https://ngrok.com)):
 
-## کلیدها رو از کجا بگیرم؟
+```bash
+python app.py
+```
 
-- **توکن تلگرام**: از [@BotFather](https://t.me/BotFather) با دستور `/newbot`
-- **کلید Gemini**: از [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+### دیپلوی (PythonAnywhere یا هر هاست دیگه‌ای که WSGI پشتیبانی کنه)
 
-## نکته امنیتی
-هیچ‌وقت `.env` یا توکن‌ها رو commit نکن. فایل `.gitignore` از قبل این مورد رو پوشش می‌ده.
-اگه یه توکن یا کلید API رو جایی (حتی به‌اشتباه) به اشتراک گذاشتی، همیشه Revoke/Regenerate‌ش کن.
+1. کد و `.env` رو روی سرور قرار بده
+2. `pip install -r requirements.txt` بزن
+3. فایل WSGI سرور رو طوری تنظیم کن که `app` رو از `app.py` ایمپورت کنه:
+   ```python
+   from app import app as application
+   ```
+4. بعد از reload کردن اپ، یه بار آدرس `/set_webhook` رو باز کن تا webhook به تلگرام معرفی بشه
+
+## 🧠 چند تصمیم فنی و چرایی‌شون
+
+**چرا Gemini و نه یه مدل دیگه؟**
+Gemini API واقعاً رایگانه (نه فقط یه دوره تست محدود) و دامنه‌ش (`googleapis.com`) روی
+وایت‌لیست اکانت‌های رایگان PythonAnywhere هم هست — برخلاف بعضی سرویس‌های واسط مثل OpenRouter
+که با خطای دسترسی مواجه میشن چون تو اون وایت‌لیست نیستن.
+
+**چرا webhook به‌جای polling؟**
+Polling نیاز به یه پروسه که دائم در حال اجراست داره (`run_polling()`)، ولی هاست‌های
+رایگان معمولاً همچین قابلیتی (Always-on tasks) رو ساپورت نمی‌کنن. با webhook، سرور فقط
+وقتی پیامی میاد بیدار میشه — سازگار با محیط‌های serverless/shared hosting.
+
+**چرا فایل‌ها inline (base64) فرستاده میشن نه از طریق File API؟**
+برای فایل‌های کوچیک (زیر ۱۵ مگابایت که محدودیت این پروژه‌ست) ارسال inline ساده‌تره و
+یه round-trip اضافه (آپلود جدا) نیاز نداره. برای فایل‌های بزرگ‌تر، مرحله بعدی توسعه
+می‌تونه از Gemini File API استفاده کنه.
+
+## 🗺️ قدم‌های بعدی
+
+- [ ] حافظه بلندمدت (ذخیره تاریخچه مکالمات در دیتابیس)
+- [ ] سیستم یادآوری زمان‌بندی‌شده (APScheduler)
+- [ ] پشتیبانی از فایل‌های بزرگ‌تر با Gemini File API
+- [ ] Rate limiting برای جلوگیری از سو‌استفاده
+
+## 🔒 امنیت
+
+- تمام کلیدها و توکن‌ها فقط در `.env` نگه‌داری میشن (که در `.gitignore` هست و هرگز commit نمیشه)
+- هیچ کلید یا توکنی به‌صورت hardcoded در کد وجود نداره
